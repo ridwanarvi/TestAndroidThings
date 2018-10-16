@@ -8,27 +8,29 @@ import com.google.android.things.pio.PeripheralManager
 import com.google.firebase.firestore.FirebaseFirestore
 
 private val TAG = HomeActivity::class.java.simpleName
+private const val GPIO_RELAY = "BCM5"
 
 class HomeActivity : Activity() {
-    val GPIO_RELAY = "BCM5"
-
     private var relay: Gpio? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        initGPIO()
 
         val db = FirebaseFirestore.getInstance()
         db.collection("androidthings")
             .document("ledStatus")
             .addSnapshotListener { snapshot, e ->
-                Log.d(TAG, "snapshot:$snapshot")
                 e?.let {
                     Log.d(TAG, "ERROR", it)
                 } ?: run {
-                    Log.d(TAG, "LED state: " + snapshot?.get("ledState"))
+                    val status: String = (snapshot?.get("ledState") ?: "LOW").toString()
+                    setRelay(status == "HIGH")
                 }
             }
+    }
 
+    private fun initGPIO() {
         val manager = PeripheralManager.getInstance()
         Log.d(TAG, "GPIOs: " + manager.gpioList)
 
@@ -39,10 +41,10 @@ class HomeActivity : Activity() {
         } catch (e: Exception) {
             Log.w(TAG, "Unable to access GPIO", e)
         }
-
     }
 
-    fun setRelay(on: Boolean) {
+    private fun setRelay(on: Boolean) {
+        Log.d(TAG, "status: $on")
         relay?.value = on
     }
 
